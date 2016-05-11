@@ -1,5 +1,6 @@
 ﻿using NUnit.Framework;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
@@ -8,35 +9,31 @@ namespace FP
 	[TestFixture]
 	public class SummatorTests
 	{
-		private Summator summator;
-		private const string LargeInputFilename = "process-large-file.txt";
+	    private HexSumFormatter formatter;
+	    private const string LargeInputFilename = "process-large-file.txt";
 		private const string OutputFilename = "process-result.txt";
 		private const string ExpectedOutputFilename = "expected-process-result.txt";
 
-		[SetUp]
-		public void SetUp()
-		{
-			summator = new Summator(
-				() => new DataSource(LargeInputFilename),
-				new HexSumFormatter(),
-				OutputFilename);
-		}
+	    [SetUp]
+	    public void SetUp()
+	    {
+	        formatter = new HexSumFormatter();
+	    }
 
-
-		[Test]
+	    [Test]
 		public void Process_GeneratesCorrectOutputFile()
 		{
 			var actualResultFile = new FileInfo(OutputFilename);
 			if (actualResultFile.Exists) actualResultFile.Delete();
 
-			summator.Process();
+	        DoTest();
 
-			CollectionAssert.AreEqual(
+	        CollectionAssert.AreEqual(
 				File.ReadAllLines(ExpectedOutputFilename),
 				File.ReadAllLines(actualResultFile.FullName));
 		}
 
-		[Test]
+	    [Test]
 		public void Process_ShowProgressOnConsole()
 		{
 			var stdOut = Console.Out;
@@ -45,9 +42,9 @@ namespace FP
 				var consoleOutput = new StringWriter();
 				Console.SetOut(consoleOutput);
 
-				summator.Process();
+                DoTest();
 
-				var actualOutput = consoleOutput.ToString()
+                var actualOutput = consoleOutput.ToString()
 					.TrimEnd()
 					.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
 				Assert.AreEqual("processed 100 items", actualOutput.First());
@@ -60,7 +57,25 @@ namespace FP
 			}
 		}
 
-		[Test]
+	    private void DoTest()
+	    {
+	        Action<int> logProgress = index =>
+	        {
+	            if (index%100 == 0)
+	                Console.WriteLine("processed {0} items", index);
+	        };
+
+            using (var input = new DataSource(LargeInputFilename))
+            {
+                SummatorExtensions
+                    .RepeatUnitNull(input.NextParsedRecord)
+                    .Select(formatter.SumAndFormat)
+                    .Notify(logProgress)
+                    .WriteAllLines(OutputFilename);
+            }
+	    }
+
+	    [Test]
 		[Explicit("Генератор данных. Не нужен для выполнения задания")]
 		public void GenerateInput()
 		{

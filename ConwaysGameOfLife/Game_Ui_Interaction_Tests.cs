@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using FakeItEasy;
+﻿using FakeItEasy;
 using NUnit.Framework;
 
 namespace ConwaysGameOfLife
@@ -14,7 +13,7 @@ namespace ConwaysGameOfLife
 		public void SetUp()
 		{
 			ui = A.Fake<IGameUi>();
-			game = new Game(new Size(2, 2), ui);
+			game = new Game(new Size(2, 2));
 		}
 
 		[Test]
@@ -30,7 +29,7 @@ namespace ConwaysGameOfLife
 		public void Step_UpdatesOnlyChangedCellsInUi()
 		{
 			game.Revive(new Point(0, 0));
-			game.Step();
+			//game.Step();
 
 			A.CallTo(() => ui.UpdateCell(0, 0, false))
 				.MustHaveHappened(Repeated.Exactly.Once);

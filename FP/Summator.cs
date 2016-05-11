@@ -1,47 +1,49 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
 namespace FP
 {
-	public class Summator
-	{
-		private readonly Func<DataSource> openDatasource;
-		private readonly ISumFormatter formatter;
-		private readonly string outputFilename;
-		/*
-		Отрефакторите код.
-			1. Отделите максимум логики от побочных эффектов.
-			2. Создайте нужные вам методы.
-			3. Сделайте так, чтобы максимум кода оказалось внутри универсальных методов, потенциально полезных в других местах программы.
-		*/
+    public static class SummatorExtensions
+    {
+        public static IEnumerable<T> Repeat<T>(this Func<T> getValue)
+        {
+            while (true)
+                yield return getValue();
+        }
 
-		public Summator(Func<DataSource> openDatasource, ISumFormatter formatter, string outputFilename)
-		{
-			this.openDatasource = openDatasource;
-			this.formatter = formatter;
-			this.outputFilename = outputFilename;
-		}
+        public static IEnumerable<T> RepeatUnitNull<T>(this Func<T> getValue)
+        {
+            return getValue.Repeat().TakeWhile(value => value != null);
+        }
 
-		public void Process()
-		{
-			using(var input = openDatasource())
-			using (var writer = new StreamWriter(outputFilename))
-			{
-				var c = 0;
-				while (true)
-				{
-					string[] record = input.NextRecord();
-					if (record == null) break;
-					c++;
-					var nums = record.Select(part => Convert.ToInt32(part, 16)).ToArray();
-					var sum = nums.Sum();
-					var text = formatter.Format(nums, sum);
-					writer.WriteLine(text);
-					if (c % 100 == 0)
-						Console.WriteLine("processed {0} items", c);
-				}
-			}
-		}
-	}
+        public static IEnumerable<T> Notify<T>(this IEnumerable<T> ts, Action<int> nofity)
+        {
+            var counter = 0;
+            foreach (var t in ts)
+            {
+                counter++;
+                nofity(counter);
+                yield return t;
+            }
+        }
+
+        public static int[] NextParsedRecord(this DataSource dataSource)
+        {
+            return dataSource.NextRecord()?
+                .Select(part => Convert.ToInt32(part, 16))
+                .ToArray();
+        }
+
+        public static string SumAndFormat(this ISumFormatter formatter, int[] input)
+        {
+            return formatter.Format(input, input.Sum());
+        }
+
+        public static void WriteAllLines(this IEnumerable<string> lines, string path)
+        {
+            File.WriteAllLines(path, lines);
+        }
+    }
 }

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace ConwaysGameOfLife
@@ -7,13 +8,11 @@ namespace ConwaysGameOfLife
 	{
 		public int Width { get; }
 		public int Height { get; }
-		private readonly IGameUi ui;
 
 		private bool[,] isAlive;
 
-		public Game(Size size, IGameUi ui)
+		public Game(Size size)
 		{
-			this.ui = ui;
 			Width = size.Width;
 			Height = size.Height;
 			isAlive = new bool[Width, Height];
@@ -23,20 +22,28 @@ namespace ConwaysGameOfLife
 		{
 			foreach (var pos in cells)
 				isAlive[(pos.X + Width) % Width, (pos.Y + Height) % Height] = true;
-			ui.UpdateAll(this);
 		}
 
-		public void Step()
+		public StepResult Step()
 		{
+		    var changedCells = new List<ChangedCell>();
 			var willBeAlive = new bool[Width, Height];
-			for (int y = 0; y < Height; y++)
-				for (int x = 0; x < Width; x++)
-				{
-					willBeAlive[x, y] = WillBeAlive(x, y);
-					if (willBeAlive[x, y] != isAlive[x, y])
-						ui.UpdateCell(x, y, willBeAlive[x, y]);
-				}
-			isAlive = willBeAlive;
+		    for (int y = 0; y < Height; y++)
+		    {
+		        for (int x = 0; x < Width; x++)
+		        {
+		            willBeAlive[x, y] = WillBeAlive(x, y);
+		            if (willBeAlive[x, y] != isAlive[x, y])
+		            {
+		                changedCells.Add(new ChangedCell(x, y, willBeAlive[x, y]));
+		            }
+		        }
+		    }
+		    isAlive = willBeAlive;
+		    return new StepResult
+		    {
+		        ChangedCells = changedCells
+		    };
 		}
 
 		private bool WillBeAlive(int x, int y)
@@ -80,4 +87,23 @@ namespace ConwaysGameOfLife
 			return string.Join("\n", rows);
 		}
 	}
+
+    public class StepResult
+    {
+        public List<ChangedCell> ChangedCells { get; set; }
+    }
+
+    public class ChangedCell
+    {
+        public ChangedCell(int x, int y, bool isAlive)
+        {
+            X = x;
+            Y = y;
+            IsAlive = isAlive;
+        }
+
+        public int X { get; set; }
+        public int Y { get; set; }
+        public bool IsAlive { get; set; }
+    }
 }

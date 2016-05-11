@@ -22,7 +22,6 @@ namespace ConwaysGameOfLife
 		{
 			Console.SetCursorPosition(x, y);
 			Console.Write(alive ? '#' : ' ');
-
 		}
 	}
 }
